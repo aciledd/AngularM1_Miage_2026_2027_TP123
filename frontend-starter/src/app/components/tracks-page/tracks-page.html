@@ -21,6 +21,12 @@
       @if (loading()) {
         <p>Chargement…</p>
       }
+
+      <!--permet d'afficher l'erreur avec role alert -->
+      @if (error()) {                                          
+        <p class="error" role="alert">{{ error() }}</p>       
+      } 
+
       @for (track of tracks(); track track.id) {
         <div class="track">
           <div>
@@ -30,16 +36,29 @@
           <button type="button" (click)="play(track)" [attr.aria-label]="'Lire ' + track.title">▶</button>
         </div>
       } @empty {
-        <p>Aucune piste.</p>
+
+        @if (!loading() && !error()) { 
+          <p>Aucune piste.</p>   <!--mess affiché seulement si le chargement a bien fini -->
       }
+      }
+    
+
+
       <div class="pager">
-        <button type="button" (click)="go(page() - 1)" [disabled]="page() === 1">Préc.</button>
+
+        <!-- prec desactive si on est deja sur la 1e page (evite les doubles clic) -->
+        <button type="button" (click)="go(page() - 1)" [disabled]="page() <= 1 || loading() ">Préc.</button>
         <span>Page {{ page() }} / {{ pages() }}</span>
-        <button type="button" (click)="go(page() + 1)" [disabled]="page() === pages()">Suiv.</button>
+       
+         <!-- suiv desactive si on est deja sur la derniere page (evite les doubles clic) -->
+        <button type="button" (click)="go(page() + 1)" [disabled]="page() >= pages() || loading() ">Suiv.</button>
       </div>
+
+
       @if (audioUrl()) {
         <audio [src]="audioUrl()" controls autoplay></audio>
       }
+    
     </article>
   </div>
 </section>
