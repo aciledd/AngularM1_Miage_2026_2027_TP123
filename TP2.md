@@ -1,0 +1,76 @@
+# TP2 — Bibliothèque, upload et lecture audio 
+
+DOUGHANE Saadeddine & EL DADA Acile 
+
+
+## Captures d'écrans
+
+#### Pagination :
+![Pagination page 2](docs/pagination-page2.png)
+
+#### Lecture audio avec authentification  : 
+![Lecture audio](docs/lecture-audio.png)
+
+Pour écouter une piste, il faut être connecté et que la piste nous appartienne. Sur la capture, on voit que la requête `GET /api/tracks/:id/audio` envoie notre JWT dans le header `Authorization`, et que le serveur répond 200 avec un fichier `audio/mpeg`.
+
+Côté backend, la piste est cherchée avec notre id comme propriétaire :
+```js
+Track.findOne({ _id: req.params.id, ownerId: req.auth.sub })
+```
+Sans token, le serveur répond 401. Et si la piste appartient à quelqu'un d'autre, il répond 404.
+
+## 1. Où se trouve quoi dans le code
+
+Tout se passe dans `tracks-page.ts`, `tracks-page.html` et `track.service.ts` :
+- choix du fichier : `choose()` dans le composant 
+- FormData et appel d'upload : `upload()` dans le service
+- récupération du Blob : `audio()` dans le service (`responseType: 'blob'`)
+- préparation de la lecture (création de l'ObjectURL, envoi au lecteur, libération de l'ancienne) : `play()` dans le composant.
+
+Le FormData contient bien `audio` et `title`.
+
+```ts
+// track.service.ts
+const body = new FormData();
+body.append('audio', file);
+body.append('title', title);
+```
+
+## 2. Flux d'upload et de lecture
+
+**Upload :** le composant appelle le service, qui met le fichier et le titre dans un FormData et l'envoie avec `HttpClient` en `POST /api/tracks`.
+
+**Lecture :** au clic sur le bouton play, le service télécharge tout le fichier sous forme de Blob. Ensuite, `URL.createObjectURL()` crée une adresse locale que l'on donne au lecteur `<audio>`.
+
+```ts
+// tracks-page.ts, méthode play()
+const previousUrl = this.audioUrl();
+if (previousUrl) URL.revokeObjectURL(previousUrl);
+this.audioUrl.set(URL.createObjectURL(blob));
+```
+
+## 3. Intercepteur JWT
+
+L'intercepteur (`auth.interceptor.ts`, activé dans `main.ts`) ajoute `Authorization: Bearer <token>` à chaque requête de `HttpClient`.
+
+```ts
+// auth.interceptor.ts
+request.clone({
+  setHeaders: { Authorization: `Bearer ${token}` },
+})
+```
+
+Si l'on mettait directement l'URL de l'API dans `<audio src>`, c'est le navigateur qui ferait la requête, pas Angular. L'intercepteur ne passerait pas, le token ne serait pas envoyé, et le serveur répondrait 401.
+
+## 4. Contrôles côté backend
+
+Dans `backend/src/app.js`, Multer vérifie que le fichier est bien dans le champ `audio`, que c'est un format audio autorisé (mp3, wav, ogg, m4a) et qu'il fait moins de 25 Mo. Sinon, le serveur renvoie une erreur 400. Le titre est lu dans `req.body.title`.
+
+```js
+// backend/src/app.js
+const MAX_FILE_SIZE = 25 * 1024 * 1024;
+app.post("/api/tracks", auth, upload.single("audio"), ...)
+```
+
+Les fichiers sont stockés sur le disque (`data/uploads/`), et MongoDB ne garde que leurs infos.
+
