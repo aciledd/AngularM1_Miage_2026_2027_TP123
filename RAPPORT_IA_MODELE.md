@@ -83,3 +83,21 @@ Gestion du 401 : en cassant volontairement le token dans le localStorage puis en
 Le localStorage lui persiste sur le disque et survit au refresh, mais rien ne prévient l'application quand sa valeur change. Le token utilise les deux en même temps, pour combiner les deux avantages.
 
 On a utilisé un assistant IA notamment pour mettre en forme ce rapport et pour la rédaction initiale du catchError dans l'intercepteur, qu'on a ensuite adapté et testé nous-mêmes.
+
+## Mission 3 — Améliorations de l'upload
+
+On a ajouté une vérification du fichier avant l'envoi (mêmes formats et même taille max que le backend), un état « Envoi en cours… » qui bloque les doubles envois, des messages d'erreur et de succès, et la remise à zéro complète du formulaire après succès.
+
+On a testé chaque cas nous-mêmes : fichier au mauvais format (glissé-déposé pour contourner le filtre du sélecteur), faux MP3 de 30 Mo, envoi réussi, et backend arrêté. Ce dernier test a révélé un message technique en anglais (« NetworkError… ») : on l'a remplacé par un message clair quand le serveur ne répond pas.
+
+#### Fichier au mauvais format
+![Format invalide](./docs/upload-format-invalide.png)
+
+#### Envoi réussi : requête multipart avec le champ audio
+![Upload réussi](./docs/upload-success.png)
+
+#### Réponse du serveur avec le titre
+![Réponse upload](./docs/upload-response.png)
+
+#### Serveur injoignable
+![Erreur serveur](./docs/upload-error-serveur.png)

@@ -6,11 +6,28 @@
   </div>
 
   <div class="grid">
+
     <article class="card">
       <h2>Importer</h2>
       <label>Titre<input [formControl]="title" /></label>
-      <label>Fichier audio<input type="file" accept="audio/*" (change)="choose($event)" /></label>
-      <button type="button" (click)="upload()" [disabled]="!file">Envoyer</button>
+
+      <!-- label modifie avec les formats acceptes -->
+      <label>Fichier audio<input #fileInput type="file" accept=".mp3,.wav,.ogg,.m4a,audio/*" (change)="choose($event)" /></label>
+      
+      <!--on passe le champ à upload(),bouton désactivé sans fichier OU pendant l'envoi-->
+      <button type="button" (click)="upload(fileInput)" [disabled]="!file || uploading()">
+        {{ uploading() ? 'Envoi en cours…' : 'Envoyer' }}
+      </button>
+
+      @if (uploadError()) {
+        <p class="error" role="alert">{{ uploadError() }}</p>
+      }
+    
+      <!--message de succès-->
+      @if (uploadSuccess()) {
+        <p class="success" role="status">{{ uploadSuccess() }}</p>
+      }
+
     </article>
 
     <article class="card">

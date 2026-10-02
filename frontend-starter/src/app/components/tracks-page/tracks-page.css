@@ -4,3 +4,8 @@
     color: #b3261e; /*afficher le mess d'erreur en rouge+gras*/
     font-weight: 600;
   }
+
+  .success {
+    color: #1e7a46;/*afficher le mess de succès en vert+gras*/
+    font-weight: 600;
+  }

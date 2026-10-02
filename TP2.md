@@ -74,3 +74,16 @@ app.post("/api/tracks", auth, upload.single("audio"), ...)
 
 Les fichiers sont stockés sur le disque (`data/uploads/`), et MongoDB ne garde que leurs infos.
 
+## 5. Validation frontend vs backend
+
+Avant l'envoi, nous vérifions le fichier côté Angular avec les mêmes règles que le backend : format audio autorisé (mp3, wav, ogg, m4a) et 25 Mo maximum. Si le fichier est invalide, un message s'affiche tout de suite et aucune requête n'est envoyée.
+
+```ts
+// tracks-page.ts
+if (!ALLOWED_TYPES.includes(file.type)) return 'Format non accepté…';
+if (file.size > MAX_FILE_SIZE) return 'Fichier trop volumineux…';
+```
+
+Cette validation améliore l'expérience : l'utilisateur sait immédiatement ce qui ne va pas, sans attendre l'envoi d'un fichier lourd inutilement.
+
+Mais elle ne remplace pas celle du backend, car tout ce qui se passe dans le navigateur peut être contourné. Nous l'avons vu nous-mêmes en essyant : un simple glisser-déposer contourne le filtre `accept` du champ fichier. Et n'importe qui peut envoyer une requête directement à l'API, sans passer par notre site. Seul le serveur est sûr.
