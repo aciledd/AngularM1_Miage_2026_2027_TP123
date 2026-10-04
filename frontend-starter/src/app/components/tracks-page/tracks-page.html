@@ -44,20 +44,33 @@
         <p class="error" role="alert">{{ error() }}</p>       
       } 
 
-      @for (track of tracks(); track track.id) {
-        <div class="track">
-          <div>
-            <b>{{ track.title }}</b>
-            <small>{{ track.originalName }} · {{ track.size }} Ko</small>
-          </div>
-          <button type="button" (click)="play(track)" [attr.aria-label]="'Lire ' + track.title">▶</button>
-        </div>
-      } @empty {
+      <ul class="track-list">
+        @for (track of tracks(); track track.id) {
+          <li>
+            <!--une card par piste+ classe "playing" si cest le morceau en cours-->
+            <article class="track-card" [class.playing]="currentTrack()?.id === track.id">
 
-        @if (!loading() && !error()) { 
-          <p>Aucune piste.</p>   <!--mess affiché seulement si le chargement a bien fini -->
-      }
-      }
+              <h3>{{ track.title }}</h3>
+
+              <p class="file-name">{{ track.originalName }}</p>
+              <!--format lisible, taille en mo, format date-->
+              <p class="meta">
+
+                {{ formatType(track.mimeType) }} · {{ formatSize(track.size) }} · ajouté le {{ track.createdAt | date: 'dd/MM/yyyy' }}
+              </p>
+              <!--bouton désac pendant téléchargement + annonce piste en cours -->
+              <button type="button" (click)="play(track)" [disabled]="audioLoading()" [attr.aria-label]="'Lire ' + track.title">
+                ▶ Lire
+              </button>
+            </article>
+          </li>
+
+        } @empty {
+          @if (!loading() && !error()) {
+            <li>Aucune piste.</li> 
+          }
+        }
+      </ul>
     
 
 
@@ -72,8 +85,25 @@
       </div>
 
 
+      <!--pendant le téléchargement complet du fichier (blob)-->
+      @if (audioLoading()) {
+        <p role="status">Chargement du morceau…</p>
+      }
+
+      <!--erreur de lecture-->
+      @if (audioError()) {
+        <p class="error" role="alert">{{ audioError() }}</p>
+      }
+
       @if (audioUrl()) {
-        <audio [src]="audioUrl()" controls autoplay></audio>
+
+        <div class="player">
+          <!--affiche le morceau en cours-->
+          <p class="now-playing">En cours : <strong>{{ currentTrack()?.title }}</strong></p>
+          
+          <!--(error) appelle onAudioError() si le navigateur n'arrive pas à lire le fichier -->
+          <audio [src]="audioUrl()" controls autoplay (error)="onAudioError()"></audio>
+        </div>
       }
     
     </article>

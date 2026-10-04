@@ -1,17 +1,18 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, inject,signal, OnDestroy } from '@angular/core';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { Track } from '../../shared/models/track.model';
 import { TrackService } from '../../shared/services/track.service';
+import { DatePipe } from '@angular/common';
 
 const ALLOWED_TYPES= ['audio/mpeg','audio/wav','audio/x-wav','audio/ogg','audio/mp4','audio/x-m4a']; 
 const MAX_FILE_SIZE= 25* 1024* 1024;
 
 @Component({
-  imports: [ReactiveFormsModule],
+  imports: [ReactiveFormsModule,DatePipe],
   templateUrl: './tracks-page.html',
   styleUrl: './tracks-page.css',
 })
-export class TracksPageComponent {
+export class TracksPageComponent implements OnDestroy {
   private readonly service = inject(TrackService);
 
   readonly tracks = signal<Track[]>([]);
@@ -23,6 +24,9 @@ export class TracksPageComponent {
   readonly uploading = signal(false);
   readonly uploadSuccess = signal<string | null>(null); //mess de succès
   readonly audioUrl = signal('');
+  readonly currentTrack = signal<Track | null>(null); //morceau en cours 
+  readonly audioLoading = signal(false); //il est true pendant le telechargement du fichier 
+  readonly audioError = signal<string | null>(null); //erreur de lecture
   readonly title = new FormControl('', { nonNullable: true });
   file?: File;
 
@@ -147,14 +151,70 @@ export class TracksPageComponent {
   }
 
   play(track: Track): void {
+
+    this.audioError.set(null);  //ancienne erreur supp
+    this.audioLoading.set(true); //morceau qui charge
     this.service.audio(track.id).subscribe({
+
       next: (blob) => {
+
         console.debug('[TracksPage] Audio chargé', track.id);
         const previousUrl = this.audioUrl();
         if (previousUrl) URL.revokeObjectURL(previousUrl);
         this.audioUrl.set(URL.createObjectURL(blob));
+
+        this.currentTrack.set(track); //on retient le morceau en cours
+        this.audioLoading.set(false);
+
       },
-      error: (error) => console.error('[TracksPage] Lecture impossible', error),
+
+      error: (error) => { //on va plutot afficher un reel mess d'erreur
+
+        console.error('[TracksPage] Lecture impossible', error);
+        this.audioLoading.set(false);
+
+        if (error.status === 0) { //si le serveur repond pas
+          this.audioError.set('Le serveur est injoignable. Réessayez plus tard.');
+        } 
+        
+        else if (error.status === 404) {
+          this.audioError.set('Ce morceau est introuvable.');
+        } 
+        
+        else { 
+          this.audioError.set('Impossible de lire ce morceau. Réessayez.');
+        }
+
+      }, 
     });
   }
+
+    onAudioError(): void {
+      this.audioError.set("Le navigateur n'arrive pas à lire ce fichier audio.");
+  }
+
+  //on convertit la taille en Mo (plus lisible)
+  formatSize(bytes: number): string {
+    return `${(bytes / 1024 / 1024).toFixed(1)} Mo`;
+  }
+
+formatType(mimeType: string): string {
+  const formats: Record<string, string> = {
+    'audio/mpeg': 'MP3',
+    'audio/wav': 'WAV',
+    'audio/x-wav': 'WAV',
+    'audio/ogg': 'OGG',
+    'audio/mp4': 'M4A',
+    'audio/x-m4a': 'M4A',
+  };
+  return formats[mimeType] ?? mimeType;  // si le type est inconnu, on l'affiche tel quel
+}
+
+  ngOnDestroy(): void { //appelée par angular pour liberer le objectURL
+    const url = this.audioUrl();
+    if (url) URL.revokeObjectURL(url);
+    console.debug('[TracksPage] ObjectURL révoquée', url);
+  }
+  
+
 }

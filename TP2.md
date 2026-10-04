@@ -87,3 +87,15 @@ if (file.size > MAX_FILE_SIZE) return 'Fichier trop volumineux…';
 Cette validation améliore l'expérience : l'utilisateur sait immédiatement ce qui ne va pas, sans attendre l'envoi d'un fichier lourd inutilement.
 
 Mais elle ne remplace pas celle du backend, car tout ce qui se passe dans le navigateur peut être contourné. Nous l'avons vu nous-mêmes en essyant : un simple glisser-déposer contourne le filtre `accept` du champ fichier. Et n'importe qui peut envoyer une requête directement à l'API, sans passer par notre site. Seul le serveur est sûr.
+
+## 6. Blob, buffering et streaming
+
+Ce sont trois choses différentes :
+
+- **Téléchargement complet d'un Blob** : c'est ce que fait notre application. `HttpClient` attend d'avoir reçu tout le fichier avant de nous le donner. C'est pour ça que nous affichons « Chargement du morceau… » : la lecture ne peut pas commencer avant la fin du téléchargement.
+
+- **Buffering du navigateur** : quand un lecteur `<audio>` lit une URL HTTP classique, il télécharge un peu d'avance et commence à jouer sans attendre la fin. Il continue de charger pendant la lecture.
+
+- **Streaming côté serveur** : c'est la façon dont le serveur envoie le fichier. Notre backend utilise `res.sendFile`, qui lit le fichier par morceaux depuis le disque au lieu de le charger entièrement en mémoire. Sur notre capture (en haut de ce document), l'en-tête `accept-ranges: bytes` montre aussi qu'il accepte d'envoyer seulement une partie du fichier.
+
+Dans notre cas, le serveur sait donc envoyer le fichier progressivement, mais côté Angular, nous attendons quand même le fichier complet, à cause du Blob.

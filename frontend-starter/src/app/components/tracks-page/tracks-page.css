@@ -9,3 +9,62 @@
     color: #1e7a46;/*afficher le mess de succès en vert+gras*/
     font-weight: 600;
   }
+
+
+.track-list {
+  list-style: none;          
+  padding: 0;
+  margin: 1rem 0;
+  display: grid;
+
+  /* autant de colonnes que possible*/
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 1rem;
+}
+
+/* une carte d'audio */
+.track-card {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+
+  gap: 0.35rem;
+  padding: 1rem;
+  border: 1px solid #d5e2dc;
+  border-radius: 12px;
+  background: #f7faf8;
+}
+
+.track-card h3 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.track-card .file-name,
+.track-card .meta {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #5b6b65;
+}
+
+.track-card button {
+  margin-top: auto;
+  align-self: flex-start;
+}
+
+.track-card.playing {
+  border-color: #1e7a46;
+  background: #e6f2ec;
+}
+
+.player {
+  margin-top: 1rem;
+}
+
+.now-playing {
+  margin: 0 0 0.5rem;
+}
+
+.player audio {
+  width: 100%;              
+}
