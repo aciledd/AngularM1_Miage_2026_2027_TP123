@@ -146,6 +146,18 @@ On a ajouté l'affichage du morceau en cours, un message pendant le télécharge
 #### Révocation de l'ObjectURL en quittant la page
 ![ObjectURL révoquée](./docs/objecturl-revoquee.png)
 
+## Checkpoint Network
+
+Pour voir l'erreur 400 du serveur, on a dû désactiver temporairement notre validation front, sinon le fichier invalide n'était jamais envoyé. Pour vérifier qu'une piste n'est lisible que par son propriétaire, on a créé un second compte et demandé l'audio d'une piste du premier compte depuis la console : le serveur répond 404 « Piste inconnue », on peut la voir dans la capture ci-dessous.
+
+En testant, on a aussi remarqué qu'une piste uploadée par mon coéquipier sur son ordinateur ne se lisait pas chez moi : les métadonnées sont partagées dans MongoDB Atlas, mais le fichier reste sur le disque de son serveur.
+
+#### Erreur 400 renvoyée par le serveur
+![Erreur 400](./docs/upload-400-serveur.png)
+
+#### Piste d'un autre utilisateur refusée
+![Autre utilisateur](./docs/lecture-autre-utilisateur.png)
+
 ## Utilisation de l'IA sur ce TP
 
 On s'est servi de l'assistant pour comprendre le code fourni et nous proposer les modifications, qu'on a ensuite relues, adaptées et testées nous-mêmes dans le navigateur.
