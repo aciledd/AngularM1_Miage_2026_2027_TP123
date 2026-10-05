@@ -99,3 +99,57 @@ Ce sont trois choses différentes :
 - **Streaming côté serveur** : c'est la façon dont le serveur envoie le fichier. Notre backend utilise `res.sendFile`, qui lit le fichier par morceaux depuis le disque au lieu de le charger entièrement en mémoire. Sur notre capture (en haut de ce document), l'en-tête `accept-ranges: bytes` montre aussi qu'il accepte d'envoyer seulement une partie du fichier.
 
 Dans notre cas, le serveur sait donc envoyer le fichier progressivement, mais côté Angular, nous attendons quand même le fichier complet, à cause du Blob.
+
+## Checkpoint Network
+
+- **Pagination** : chaque clic sur « Suivant » change le paramètre `page` (capture en haut du document).
+
+- **Upload multipart** : la requête `POST /api/tracks` est en `multipart/form-data` et contient les champs `audio` et `title`.
+
+- **Lecture** : la réponse de `/api/tracks/:id/audio` est un flux `audio/mpeg` (capture en haut du document).
+
+- **Erreur 400** : en désactivant temporairement notre validation front, le serveur refuse un fichier qui n'est pas un audio (ici test avec une img) et nous affichons son message.
+
+![Erreur 400 du serveur](docs/upload-400-serveur.png)
+
+- **Propriétaire** : avec un second compte, la bibliothèque est vide, et demander l'audio d'une piste du premier compte renvoie 404 « Piste inconnue ».
+
+![Lecture par un autre utilisateur](docs/lecture-autre-utilisateur.png)
+
+## 7. Le choix Blob + ObjectURL
+
+La lecture d'une piste est protégée : le serveur exige notre JWT. Or, si nous mettions directement l'URL de l'API dans `<audio src>`, c'est le navigateur qui ferait la requête, sans passer par notre intercepteur, donc sans le token.
+
+C'est pour cela que nous téléchargeons d'abord le fichier avec `HttpClient` (qui ajoute le JWT), sous forme de Blob. Ensuite, `URL.createObjectURL()` crée une adresse locale (`blob:http://localhost:4200/...`) que le lecteur `<audio>` peut lire directement depuis la mémoire.
+
+- **Avantage** : la lecture reste sécurisée, seul le propriétaire peut écouter sa piste.
+
+- **Inconvénients** : il faut attendre la fin du téléchargement avant d'écouter, et le fichier occupe de la mémoire tant que l'URL n'est pas révoquée.
+
+## 8. Réponse aux questions : mémoire, buffering et streaming
+
+**1. Le backend envoie-t-il le fichier entier en mémoire, ou peut-il l'envoyer progressivement depuis le disque ?**
+
+Progressivement. Le backend utilise `res.sendFile`, qui lit le fichier par morceaux depuis le disque au lieu de le charger entièrement en mémoire.
+
+**2. Avec `HttpClient` et `responseType: "blob"`, à quel moment le composant reçoit-il le fichier ?**
+
+Seulement à la fin. `HttpClient` attend d'avoir reçu tout le fichier avant de nous donner le Blob. C'est pour cela que nous affichons « Chargement du morceau… ».
+
+**3. Avec 100 morceaux, les 100 fichiers sont-ils chargés en mémoire dès l'affichage de la liste ?**
+
+Non. La liste ne charge que les informations des pistes (titre, taille, date…), et seulement 5 par page grâce à la pagination. Un fichier audio n'est téléchargé que quand on clique sur « Lire », dans `play()` :
+```ts
+play(track: Track): void {
+  this.service.audio(track.id).subscribe(...)
+}
+```
+Et comme l'ancienne URL est révoquée à chaque nouvelle lecture, un seul fichier reste en mémoire à la fois.
+
+**4. Quelle différence avec 100 éléments `<audio>` utilisant directement une URL HTTP ?**
+
+Le navigateur pourrait commencer à précharger les 100 fichiers, ce qui ferait beaucoup de requêtes. En revanche, il ferait du vrai streaming : la lecture commencerait avant la fin du téléchargement, et on pourrait avancer dans le morceau. Mais dans notre cas, ces requêtes partiraient sans le JWT, et le serveur répondrait 401.
+
+**5. Pourquoi l'URL créée par `URL.createObjectURL` doit-elle être révoquée ?**
+
+Tant que l'URL existe, le navigateur garde le fichier en mémoire. Sans `revokeObjectURL`, chaque lecture ajouterait plusieurs Mo jamais libérés. Nous révoquons donc l'ancienne URL à chaque nouvelle lecture, et la dernière dans `ngOnDestroy()`, quand on quitte la page. Nous l'avons vérifié avec un log dans la console.
