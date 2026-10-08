@@ -18,10 +18,21 @@
                             }
                         ],
                         "styles": [
-                          "src/material-theme.scss",
-                          "src/styles.css"
+                        "src/material-theme.scss",
+                        "src/styles.css"
                         ]
-                    }
+                    },
+                    "configurations": {
+                        "production": {
+                            "outputHashing": "all"
+                        },
+                        "development": {
+                            "optimization": false,
+                            "extractLicenses": false,
+                            "sourceMap": true
+                        }
+                    },
+                    "defaultConfiguration": "production"
                 },
                 "serve": {
                     "builder": "@angular/build:dev-server",

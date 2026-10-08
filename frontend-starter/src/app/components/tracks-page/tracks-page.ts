@@ -132,8 +132,6 @@ export class TracksPageComponent implements OnDestroy {
 
       next: (event) => {
 
-        console.debug('[TracksPage] événement HTTP', event.type, event.type === HttpEventType.UploadProgress ? event.loaded + '/' + event.total : '');
-
         //on calcule le pourcentage
         if (event.type === HttpEventType.UploadProgress && event.total) {
           this.uploadProgress.set(Math.round((100 * event.loaded) / event.total));

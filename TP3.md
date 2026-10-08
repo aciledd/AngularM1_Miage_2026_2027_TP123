@@ -56,3 +56,32 @@ if (event.type === HttpEventType.UploadProgress && event.total) {
 
 Pendant l'envoi, le bouton, le titre et le champ fichier sont désactivés, et la méthode refuse un second envoi. Les quatre états sont : aucun upload, en cours (avec pourcentage et barre), réussite (message vert) et échec (message rouge).
 
+## Mission 7 — Tests automatisés
+
+Nous avons écrit 6 tests avec Vitest et `HttpTestingController`, qui simule le serveur : aucun backend ni MongoDB n'est nécessaire. Résultat : **6 tests passés sur 6**.
+
+![Tests frontend](docs/tests-frontend.png)
+
+**Test 1 — `list()` transmet `page` et `limit`** (`track.service.spec.ts`)
+- Attendu : `GET /api/tracks` avec `page=2` et `limit=5`.
+- Observé : OK.
+
+**Test 2 — `delete()` appelle la bonne route** (`track.service.spec.ts`)
+- Attendu : `DELETE /api/tracks/abc123`.
+- Observé : OK.
+
+**Test 3 — `uploadWithProgress()` envoie un multipart** (`track.service.spec.ts`)
+- Attendu : `POST /api/tracks` avec les champs `audio` et `title`, et `reportProgress` activé.
+- Observé : OK.
+
+**Test 4 — l'intercepteur ajoute le token** (`auth.interceptor.spec.ts`)
+- Attendu : header `Authorization: Bearer faux-token` quand un token existe.
+- Observé : OK.
+
+**Test 5 — l'intercepteur sans token** (`auth.interceptor.spec.ts`)
+- Attendu : aucun header `Authorization`.
+- Observé : OK.
+
+**Test 6 — l'intercepteur sur une erreur 401** (`auth.interceptor.spec.ts`)
+- Attendu : `logout()` appelé et redirection vers `/login`.
+- Observé : OK.

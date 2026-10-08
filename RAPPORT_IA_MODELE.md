@@ -163,3 +163,39 @@ En testant, on a aussi remarqué qu'une piste uploadée par mon coéquipier sur 
 On s'est servi de l'assistant pour comprendre le code fourni et nous proposer les modifications, qu'on a ensuite relues, adaptées et testées nous-mêmes dans le navigateur.
 
 La tâche où il nous a le plus aidés est l'amélioration de l'upload. Deux points nous bloquaient : après un envoi réussi, le nom du fichier restait affiché alors qu'on vidait notre variable, et quand le backend était arrêté, le message affiché était un « NetworkError » technique en anglais. L'assistant nous a expliqué qu'il fallait vider l'élément `<input>` lui-même (en le passant à `upload()` avec `#fileInput`), et distinguer le cas `status === 0`, où le serveur ne répond pas du tout, pour afficher notre propre message. On a vérifié les deux corrections avec nos tests d'upload.
+
+---
+
+# TP3
+
+## Mission 5 — Suppression d'une piste
+
+On a ajouté `delete()` dans `TrackService`, puis une méthode `deleteTrack()` dans le composant : confirmation avant l'appel, signal `deletingId` pour bloquer les doubles clics, message dans un SnackBar Material (installé avec `ng add @angular/material`), et rechargement de la liste. On a aussi géré le cas où la piste n'existe plus : le backend répond 404, on affiche un message et on recharge la liste.
+
+On a testé la suppression réussie, l'annulation, la suppression de la dernière piste d'une page (on revient à la page précédente) et le cas des deux onglets.
+
+#### Suppression : DELETE en 204 et SnackBar
+![Suppression](./docs/delete-succes.png)
+
+## Mission 6 — Progression de l'upload
+
+On a ajouté `uploadWithProgress()` dans le service (`reportProgress` et `observe: 'events'`) et un signal `uploadProgress` dans le composant. Pendant l'envoi, le bouton affiche le pourcentage, une barre apparaît, et le titre et le champ fichier sont désactivés.
+
+En local, le pourcentage passe presque directement de 0 % à 100 %, même avec la limitation réseau de Firefox. On a donc affiché temporairement les événements dans la console pour prouver le mécanisme, puis on a retiré ce log.
+
+#### Barre de progression pendant l'envoi
+![Progression](./docs/upload-progression.png)
+
+#### Événements HTTP dans la console
+![Événements](./docs/audio-logs.png)
+
+## Mission 7 — Tests automatisés
+
+On a écrit 6 tests (service et intercepteur) avec Vitest et `HttpTestingController`. `npm test` ne marchait pas au départ : il manquait `jsdom` et une configuration `development` dans `angular.json`. On les a ajoutés.
+
+#### 6 tests passés
+![Tests](./docs/tests-frontend.png)
+
+## Utilisation de l'IA sur ce TP
+
+On a surtout utilisé l'assistant pour les tests automatisés (mission 7), qu'on n'avait jamais écrits : il nous a proposé les fichiers `.spec.ts` et expliqué `HttpTestingController`. Il nous a aussi aidés à régler les deux erreurs de `npm test` (environnement DOM manquant, puis configuration `development` absente de `angular.json`).
