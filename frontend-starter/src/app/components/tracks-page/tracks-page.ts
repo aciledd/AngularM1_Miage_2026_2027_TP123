@@ -3,6 +3,7 @@ import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { Track } from '../../shared/models/track.model';
 import { TrackService } from '../../shared/services/track.service';
 import { DatePipe } from '@angular/common';
+import { MatSnackBar } from '@angular/material/snack-bar';
 
 const ALLOWED_TYPES= ['audio/mpeg','audio/wav','audio/x-wav','audio/ogg','audio/mp4','audio/x-m4a']; 
 const MAX_FILE_SIZE= 25* 1024* 1024;
@@ -14,6 +15,7 @@ const MAX_FILE_SIZE= 25* 1024* 1024;
 })
 export class TracksPageComponent implements OnDestroy {
   private readonly service = inject(TrackService);
+  private readonly snackBar = inject(MatSnackBar);
 
   readonly tracks = signal<Track[]>([]);
   readonly page = signal(1);
@@ -27,6 +29,8 @@ export class TracksPageComponent implements OnDestroy {
   readonly currentTrack = signal<Track | null>(null); //morceau en cours 
   readonly audioLoading = signal(false); //il est true pendant le telechargement du fichier 
   readonly audioError = signal<string | null>(null); //erreur de lecture
+  readonly deletingId = signal<string | null>(null);  //id en cours de suppression (si c'est null alors aucune)
+
   readonly title = new FormControl('', { nonNullable: true });
   file?: File;
 
@@ -186,6 +190,63 @@ export class TracksPageComponent implements OnDestroy {
         }
 
       }, 
+    });
+  }
+
+      /* supprimer une piste avec confirmation*/ 
+
+  deleteTrack(track: Track): void {
+    if (this.deletingId()) return;  // si suppression déjà en cours alors ignore le clic
+
+    //si l'utilisateur annule alors aucune requête n'est envoyée
+    if (!window.confirm(`Supprimer « ${track.title} » ? Cette action est définitive.`)) return;
+
+    this.deletingId.set(track.id);  //bloquer les doubles clics
+
+    this.service.delete(track.id).subscribe({   //appel HTTP via le service
+      
+      next: () => {
+        this.deletingId.set(null);
+        this.snackBar.open(`« ${track.title} » a été supprimée.`, 'OK', { duration: 4000 });
+
+        //si morceau supprimé était en lecture on arrête le lecteur
+        if (this.currentTrack()?.id === track.id) {
+
+          const url = this.audioUrl();
+          if (url) URL.revokeObjectURL(url);
+          this.audioUrl.set('');
+
+          this.currentTrack.set(null);
+        }
+
+        //dernière piste de la dernière page, comme elle n'existera plus on recule de page
+        if (this.tracks().length === 1 && this.page() > 1) {
+
+          this.page.set(this.page() - 1);
+        }
+
+        this.load();  //rechargement la liste depuis le serveur
+      },
+
+      error: (error) => {
+        console.error('[TracksPage] Suppression impossible', error);
+        this.deletingId.set(null);
+
+        if (error.status === 404) {
+
+          this.snackBar.open("Cette piste n'existe plus ou ne vous appartient pas.", 'OK', { duration: 5000 });
+          this.load();  //on la fait disparaître de l'écran
+        }
+        
+        else if (error.status === 0) {  //le serveur ne répond pas du tout
+          this.snackBar.open('Le serveur est injoignable. Réessayez plus tard.', 'OK', { duration: 5000 });
+        }
+        
+        else if (error.status !== 401) {  //le 401 est déjà géré par l'intercepteur
+          this.snackBar.open('La suppression a échoué. Réessayez.', 'OK', { duration: 5000 });
+        }
+      },
+      
     });
   }
 
