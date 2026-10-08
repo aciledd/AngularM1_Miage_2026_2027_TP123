@@ -1,7 +1,8 @@
 import { inject, Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient,HttpEvent } from '@angular/common/http';
 import { Page } from '../models/page.model';
 import { Track } from '../models/track.model';
+import { Observable } from 'rxjs';  
 
 /** Encapsulates all HTTP operations for backing tracks. */
 @Injectable({ providedIn: 'root' })
@@ -29,5 +30,18 @@ export class TrackService {
 
   delete(id: string) { //supprimer une piste (endpoint fourni)
     return this.http.delete<void>(`/api/tracks/${id}`);
+  }
+
+  uploadWithProgress(file: File, title: string): Observable<HttpEvent<Track>> {
+    const body = new FormData();
+
+    body.append('audio', file);
+    body.append('title', title);
+
+    return this.http.post<Track>('/api/tracks', body, {
+
+      reportProgress: true,  
+      observe: 'events',    
+    });
   }
 }

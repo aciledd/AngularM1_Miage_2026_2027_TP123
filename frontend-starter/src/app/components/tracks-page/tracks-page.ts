@@ -4,6 +4,7 @@ import { Track } from '../../shared/models/track.model';
 import { TrackService } from '../../shared/services/track.service';
 import { DatePipe } from '@angular/common';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { HttpEventType } from '@angular/common/http';  // 🆕
 
 const ALLOWED_TYPES= ['audio/mpeg','audio/wav','audio/x-wav','audio/ogg','audio/mp4','audio/x-m4a']; 
 const MAX_FILE_SIZE= 25* 1024* 1024;
@@ -30,6 +31,7 @@ export class TracksPageComponent implements OnDestroy {
   readonly audioLoading = signal(false); //il est true pendant le telechargement du fichier 
   readonly audioError = signal<string | null>(null); //erreur de lecture
   readonly deletingId = signal<string | null>(null);  //id en cours de suppression (si c'est null alors aucune)
+  readonly uploadProgress = signal(0); //pourcentage
 
   readonly title = new FormControl('', { nonNullable: true });
   file?: File;
@@ -115,42 +117,62 @@ export class TracksPageComponent implements OnDestroy {
       this.uploadError.set(problem);  
 
       return;                                    
-    }                                            
+    }                           
+    
+    const title = this.title.value || this.file.name;
 
     this.uploading.set(true);// dans l'état de chargement: bouton desactive       
     this.uploadError.set(null);    
-    this.uploadSuccess.set(null);  
+    this.uploadSuccess.set(null);
+    this.uploadProgress.set(0);  
 
-    this.service.upload(this.file, this.title.value || this.file.name).subscribe({
+    this.title.disable();
 
-      next: (track) => {
+    this.service.uploadWithProgress(this.file, title).subscribe({
 
-        console.debug('[TracksPage] Piste envoyée', track.id);
-        this.uploading.set(false);
-        this.uploadSuccess.set(`« ${track.title} » a bien été ajoutée.`);
-        this.title.setValue('');
-        this.file = undefined;
-        fileInput.value = '';
-        this.page.set(1);
-        this.load();
+      next: (event) => {
 
+        console.debug('[TracksPage] événement HTTP', event.type, event.type === HttpEventType.UploadProgress ? event.loaded + '/' + event.total : '');
+
+        //on calcule le pourcentage
+        if (event.type === HttpEventType.UploadProgress && event.total) {
+          this.uploadProgress.set(Math.round((100 * event.loaded) / event.total));
+        }
+
+        //réponse finale: l'upload est réussi
+        if (event.type === HttpEventType.Response && event.body) {
+          const track = event.body;
+
+          console.debug('[TracksPage] Piste envoyée', track.id);
+          this.uploading.set(false);
+          this.uploadProgress.set(100);
+
+          this.uploadSuccess.set(`« ${track.title} » a bien été ajoutée.`);
+          this.title.enable(); 
+          this.title.setValue('');
+          this.file = undefined;
+
+          fileInput.value = '';
+          this.page.set(1);
+          this.load();
+
+        }
       },
 
       error: (error) => {
+        console.error('[TracksPage] Envoi impossible', error);
+        this.uploading.set(false);
+        this.uploadProgress.set(0);
+        this.title.enable(); 
 
-      console.error('[TracksPage] Envoi impossible', error);
-
-      this.uploading.set(false);
-      
-      if (error.status === 0) {                                                      
-        this.uploadError.set('Le serveur est injoignable. Vérifiez votre connexion et réessayez.'); 
-      } 
-      
-      else {                 
-        this.uploadError.set(error.error?.message ?? "L'envoi a échoué. Réessayez.");
-      }   
+        if (error.status === 0) {
+          this.uploadError.set('Le serveur est injoignable. Vérifiez votre connexion et réessayez.');
+        } 
+        
+        else {
+          this.uploadError.set(error.error?.message ?? "L'envoi a échoué. Réessayez.");
+        }
       }
-      
     });
   }
 

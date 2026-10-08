@@ -88,3 +88,8 @@
 .track-card button.danger:hover:not(:disabled) {
   background: #f5d5d2;      
 }
+
+progress {
+  width: 100%;
+  margin-top: 0.5rem;
+}
