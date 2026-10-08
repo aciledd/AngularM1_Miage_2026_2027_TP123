@@ -58,10 +58,23 @@
 
                 {{ formatType(track.mimeType) }} · {{ formatSize(track.size) }} · ajouté le {{ track.createdAt | date: 'dd/MM/yyyy' }}
               </p>
+
               <!--bouton désac pendant téléchargement + annonce piste en cours -->
+              <div class="actions">
               <button type="button" (click)="play(track)" [disabled]="audioLoading()" [attr.aria-label]="'Lire ' + track.title">
                 ▶ Lire
               </button>
+
+              <!--bouton supprimer grisé si une suppression est en cours (anti double clic) -->
+              <button type="button" class="danger" (click)="deleteTrack(track)"
+                      [disabled]="deletingId() !== null"
+                      [attr.aria-label]="'Supprimer ' + track.title">
+
+                <!-- le texte change uniquement sur la card concernée -->
+                {{ deletingId() === track.id ? 'Suppression…' : '🗑 Supprimer' }}
+              </button>
+            </div>
+
             </article>
           </li>
 

@@ -68,3 +68,23 @@
 .player audio {
   width: 100%;              
 }
+
+
+.track-card .actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-top: auto;
+}
+
+
+
+.track-card button.danger {
+  background: #fbeaea;      
+  color: #b3261e;           
+  border: 1px solid #e6b8b4;
+}
+
+.track-card button.danger:hover:not(:disabled) {
+  background: #f5d5d2;      
+}
